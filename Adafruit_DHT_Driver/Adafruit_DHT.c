@@ -33,7 +33,7 @@
 #define DHT22 22
 #define AM2302 22
 
-int readDHT(int type, int pin);
+float *readDHT(int type, int pin, int print);
 int parseType(char *input);
 int init(void);
 
@@ -64,7 +64,15 @@ int main(int argc, char **argv)
 
 
   printf("Using pin #%d\n", dhtpin);
-  readDHT(type, dhtpin);
+
+  float *r = readDHT(type, dhtpin, 1);
+  if (r[0]==-1.){
+	  printf("Read failed\n");
+  } else {
+	  if (type == DHT11) printf("Temp =  %.0f *C, Hum = %.0f \%\n", r[0], r[1]);
+	  if (type == DHT22) printf("Temp =  %.1f *C, Hum = %.1f \%\n", r[0], r[1]);
+  }
+
   return 0;
 
 } // main
@@ -72,13 +80,16 @@ int main(int argc, char **argv)
 
 
 
-int readDHT(int type, int pin) {
+float *readDHT(int type, int pin, int print) {
   int bits[250], data[100];
   int bitidx = 0;
 
   int counter = 0;
   int laststate = HIGH;
   int j=0;
+
+  static float result[2];
+  float t, h;
 
   // Set GPIO pin to output
   bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);
@@ -127,27 +138,30 @@ int readDHT(int type, int pin) {
   }
 #endif
 
-  printf("Data (%d): 0x%x 0x%x 0x%x 0x%x 0x%x\n", j, data[0], data[1], data[2], data[3], data[4]);
+  if (print) printf("Data (%d): 0x%x 0x%x 0x%x 0x%x 0x%x\n", j, data[0], data[1], data[2], data[3], data[4]);
 
-  if ((j >= 39) &&
-      (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF)) ) {
+  if ((j >= 39) && (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF)) ) {
      // yay!
-     if (type == DHT11)
-	printf("Temp = %d *C, Hum = %d \%\n", data[2], data[0]);
+     if (type == DHT11) {
+    	 t = (float)data[2];
+    	 h = (float)data[0];
+     }
      if (type == DHT22) {
-	float f, h;
-	h = data[0] * 256 + data[1];
-	h /= 10;
+		//float f, h;
+		h = data[0] * 256 + data[1];
+		h /= 10;
 
-	f = (data[2] & 0x7F)* 256 + data[3];
-        f /= 10.0;
-        if (data[2] & 0x80)  f *= -1;
-	printf("Temp =  %.1f *C, Hum = %.1f \%\n", f, h);
+		t = (data[2] & 0x7F)* 256 + data[3];
+		t /= 10.0;
+		if (data[2] & 0x80)  t *= -1;
     }
-    return 1;
+    result[0] = t;
+    result[1] = h;
+    return result;
   }
-
-  return 0;
+  result[0] = -1.;
+  result[1] = -1.;
+  return result;
 }
 
 int parseType(char *input){
