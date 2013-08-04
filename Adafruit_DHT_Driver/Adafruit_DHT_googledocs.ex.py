@@ -6,6 +6,7 @@ import sys
 import time
 import datetime
 import gspread
+from DHT_Wrapper import DHT
 
 # ===========================================================================
 # Google Account Details
@@ -37,31 +38,25 @@ except:
   print "Unable to open the spreadsheet.  Check your filename: %s" % spreadsheet
   sys.exit()
 
+# Initialize sensor
+d = DHT("2302", 4)
+
 # Continuously append data
 while(True):
   # Run the DHT program to get the humidity and temperature readings!
-
-  output = subprocess.check_output(["./Adafruit_DHT", "2302", "4"]);
-  print output
-  matches = re.search("Temp =\s+([0-9.]+)", output)
-  if (not matches):
-	time.sleep(3)
-	continue
-  temp = float(matches.group(1))
+  r = d.read()
   
-  # search for humidity printout
-  matches = re.search("Hum =\s+([0-9.]+)", output)
-  if (not matches):
-	time.sleep(3)
-	continue
-  humidity = float(matches.group(1))
+  if not r:
+      time.sleep(3)
+      continue
 
-  print "Temperature: %.1f C" % temp
-  print "Humidity:    %.1f %%" % humidity
+
+  print "Temperature: %.1f C" % r["temp"]
+  print "Humidity:    %.1f %%" % r["hum"]
  
   # Append the data in the spreadsheet, including a timestamp
   try:
-    values = [datetime.datetime.now(), temp, humidity]
+    values = [datetime.datetime.now(), r["temp"], r["hum"]]
     worksheet.append_row(values)
   except:
     print "Unable to append data.  Check your connection?"
