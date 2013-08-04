@@ -34,6 +34,8 @@
 #define AM2302 22
 
 int readDHT(int type, int pin);
+int parseType(char *input);
+int init(void);
 
 int main(int argc, char **argv)
 {
@@ -45,10 +47,9 @@ int main(int argc, char **argv)
 	printf("example: %s 2302 4 - Read from an AM2302 connected to GPIO #4\n", argv[0]);
 	return 2;
   }
-  int type = 0;
-  if (strcmp(argv[1], "11") == 0) type = DHT11;
-  if (strcmp(argv[1], "22") == 0) type = DHT22;
-  if (strcmp(argv[1], "2302") == 0) type = AM2302;
+
+  int type = parseType(argv[1]);
+
   if (type == 0) {
 	printf("Select 11, 22, 2302 as type!\n");
 	return 3;
@@ -69,10 +70,12 @@ int main(int argc, char **argv)
 } // main
 
 
-int bits[250], data[100];
-int bitidx = 0;
+
 
 int readDHT(int type, int pin) {
+  int bits[250], data[100];
+  int bitidx = 0;
+
   int counter = 0;
   int laststate = HIGH;
   int j=0;
@@ -145,4 +148,17 @@ int readDHT(int type, int pin) {
   }
 
   return 0;
+}
+
+int parseType(char *input){
+	int type = 0;
+	if (strcmp(input, "11") == 0) type = DHT11;
+	if (strcmp(input, "22") == 0) type = DHT22;
+	if (strcmp(input, "2302") == 0) type = AM2302;
+	return type;
+}
+
+int init(void){
+	if (bcm2835_init()) return 1;
+	return 0;
 }
